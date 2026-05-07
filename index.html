@@ -38,6 +38,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
+      position: relative;
     }
 
     header h1 { color: white; font-size: 1.2rem; font-weight: 700; }
@@ -130,7 +131,8 @@
     .kpi-top {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      gap: 8px;
       margin-bottom: 5px;
     }
 
@@ -138,9 +140,11 @@
 
     .kpi-nums {
       display: flex;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 6px 12px;
       font-size: 0.78rem;
       color: var(--gray-text);
+      justify-content: flex-end;
     }
 
     .kpi-nums span { white-space: nowrap; }
@@ -185,6 +189,30 @@
       transform: translateX(-50%);
       white-space: nowrap;
     }
+
+    /* TD breakdown */
+    .td-breakdown {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .td-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--gray-bg);
+    }
+
+    .td-chip.ok     { background: var(--green-light);  color: var(--green-dark); }
+    .td-chip.warn   { background: var(--yellow-light); color: #92600A; }
+    .td-chip.bad    { background: var(--red-light);    color: #991B1B; }
+    .td-chip-label  { font-weight: 400; opacity: 0.75; }
 
     /* Rodapé do card */
     .agente-footer {
@@ -309,7 +337,12 @@
     <p>Stone Barbacena/MG</p>
   </div>
   <div class="header-right">
-    <span id="data-hoje"></span>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+      <span style="color:rgba(255,255,255,0.7); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.4px;">Atualizado</span>
+      <input type="date" id="data-input"
+        onchange="salvarDataRef(this.value)"
+        style="background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.4); border-radius:7px; padding:4px 8px; color:white; font-size:0.85rem; font-family:inherit; outline:none; cursor:pointer; color-scheme:dark;">
+    </div>
     <button class="btn btn-outline admin-only" onclick="novoMes()">Novo Mês</button>
     <button class="btn btn-outline admin-only" onclick="abrirModalAgente(null)">+ Agente</button>
     <button class="btn btn-white admin-only" onclick="abrirModalLancar(null)">Lançar Realizado</button>
@@ -441,6 +474,20 @@
     2400: 'Agente 4'
   };
 
+  // ── Data de referência (manual ou hoje) ─────────────────
+  let dataRef = localStorage.getItem('dataRef') || null;
+
+  function getDataRef() {
+    return dataRef ? new Date(dataRef + 'T12:00:00') : new Date();
+  }
+
+  function salvarDataRef(val) {
+    dataRef = val || null;
+    if (dataRef) localStorage.setItem('dataRef', dataRef);
+    else localStorage.removeItem('dataRef');
+    render();
+  }
+
   // ── Data e to-date ──────────────────────────────────────
   function diasUteis(ano, mes) {
     let total = 0;
@@ -462,10 +509,10 @@
   }
 
   function proporcaoToDate() {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = hoje.getMonth();
-    const dia = hoje.getDate();
+    const ref = getDataRef();
+    const ano = ref.getFullYear();
+    const mes = ref.getMonth();
+    const dia = ref.getDate();
     const total = diasUteis(ano, mes);
     const ate   = diasUteisAte(ano, mes, dia);
     return total > 0 ? ate / total : 0;
@@ -501,7 +548,7 @@
       ? (r.bonus * naAtingTD * 0.25) * 0.30 : 0;
     const scoreTD = baseTD + bonusTD;
 
-    return { naAting, tpvAting, churnAting, scoreReal, scoreTD };
+    return { naAting, tpvAting, churnAting, naAtingTD, tpvAtingTD, churnAtingTD, scoreReal, scoreTD };
   }
 
   function statusScore(scoreTD) {
@@ -527,8 +574,12 @@
     grid.innerHTML = '';
 
     agentes.forEach(ag => {
-      const { naAting, tpvAting, churnAting, scoreReal, scoreTD } = calcScore(ag, prop);
-      const st = statusScore(scoreTD);
+      const { naAting, tpvAting, churnAting, naAtingTD, tpvAtingTD, churnAtingTD, scoreReal, scoreTD } = calcScore(ag, prop);
+      let st = statusScore(scoreTD);
+      // Se qualquer KPI estiver atrás do to-date, não pode ficar verde
+      const piorTD = Math.min(naAtingTD, tpvAtingTD, churnAtingTD > 0 ? churnAtingTD : Infinity);
+      if (st === 'ok' && piorTD < tdPct * 0.8) st = 'alerta';
+      if (piorTD < tdPct * 0.6) st = 'risco';
       const tdPct = prop * 100;
       const trilhaNome = TRILHAS[ag.trilha] || 'Aspira';
       const valorProj  = ag.trilha * scoreTD / 100;
@@ -553,9 +604,15 @@
         </div>
 
         <div class="kpi-list">
-          ${kpiRow('NA', naAting, tdPct, ag.naMeta, ag.realizado?.na || 0, false)}
-          ${kpiRow('TPV M1', tpvAting, tdPct, ag.tpvMeta, ag.realizado?.tpv || 0, false)}
-          ${kpiRow('Churn', churnAting, tdPct, ag.churnMeta, ag.realizado?.churn || 0, true)}
+          ${kpiRow('NA', naAting, tdPct, ag.naMeta, ag.realizado?.na || 0, false, ag.naMeta * prop)}
+          ${kpiRow('TPV M1', tpvAting, tdPct, ag.tpvMeta, ag.realizado?.tpv || 0, false, ag.tpvMeta * prop)}
+          ${kpiRow('Churn', churnAting, tdPct, ag.churnMeta, ag.realizado?.churn || 0, true, null)}
+        </div>
+
+        <div class="td-breakdown">
+          ${tdChip('NA', naAtingTD, tdPct)}
+          ${tdChip('TPV', tpvAtingTD, tdPct)}
+          ${tdChip('Churn', churnAtingTD, tdPct)}
         </div>
 
         <div class="agente-footer">
@@ -573,7 +630,12 @@
     });
   }
 
-  function kpiRow(nome, ating, tdPct, meta, real, inverso) {
+  function tdChip(nome, atingTD, tdPct) {
+    const cls = atingTD >= tdPct ? 'ok' : atingTD >= tdPct * 0.8 ? 'warn' : 'bad';
+    return `<span class="td-chip ${cls}"><span class="td-chip-label">${nome} TD</span> ${atingTD.toFixed(0)}%</span>`;
+  }
+
+  function kpiRow(nome, ating, tdPct, meta, real, inverso, metaTD) {
     const barReal = Math.min(ating, 200) / 2;
     const barTD   = Math.min(tdPct, 100);
     let cls = '';
@@ -595,6 +657,13 @@
         ? 'R$ ' + Number(real).toLocaleString('pt-BR')
         : real);
 
+    let tdFmt = '';
+    if (metaTD !== null && metaTD !== undefined) {
+      tdFmt = nome === 'TPV M1'
+        ? 'R$ ' + Number(metaTD).toLocaleString('pt-BR', {maximumFractionDigits:0})
+        : Math.round(metaTD).toString();
+    }
+
     return `
       <div class="kpi-item">
         <div class="kpi-top">
@@ -602,14 +671,13 @@
           <div class="kpi-nums">
             <span>Meta: <span class="destaque">${metaFmt}</span></span>
             <span>Real: <span class="destaque">${realFmt}</span></span>
+            ${tdFmt ? `<span>Esp.TD: <span class="destaque">${tdFmt}</span></span>` : ''}
             <span>Ating: <span class="destaque">${ating.toFixed(1)}%</span></span>
           </div>
         </div>
         <div class="kpi-bar-wrap">
           <div class="kpi-bar-real ${cls}" style="width:${barReal}%"></div>
-          <div class="kpi-marker" style="left:${barTD}%">
-            <div class="marker-label">TD ${tdPct.toFixed(0)}%</div>
-          </div>
+          <div class="kpi-marker" style="left:${barTD}%"></div>
         </div>
       </div>`;
   }
@@ -721,10 +789,11 @@
 
   // ── Data no header ──────────────────────────────────────
   function atualizarData() {
-    const hoje = new Date();
-    const opts = { weekday:'long', day:'2-digit', month:'long' };
-    document.getElementById('data-hoje').textContent =
-      hoje.toLocaleDateString('pt-BR', opts);
+    const ref  = getDataRef();
+    const yyyy = ref.getFullYear();
+    const mm   = String(ref.getMonth() + 1).padStart(2, '0');
+    const dd   = String(ref.getDate()).padStart(2, '0');
+    document.getElementById('data-input').value = `${yyyy}-${mm}-${dd}`;
   }
 
   // ── Fechar modal clicando fora ──────────────────────────
