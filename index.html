@@ -213,6 +213,23 @@
     }
     .btn-lancar:hover { background: var(--green); color: white; }
 
+    .admin-only { display: none !important; }
+    body.admin-mode .admin-only { display: inline-flex !important; }
+    body.admin-mode .admin-block { display: flex !important; }
+    .admin-block { display: none !important; }
+
+    .btn-lock {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      color: white;
+      border-radius: 8px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.15s;
+    }
+    .btn-lock:hover { background: rgba(255,255,255,0.15); }
+
     /* Modal */
     .overlay {
       display: none;
@@ -293,8 +310,10 @@
   </div>
   <div class="header-right">
     <span id="data-hoje"></span>
-    <button class="btn btn-outline" onclick="abrirModalAgente(null)">+ Agente</button>
-    <button class="btn btn-white" onclick="abrirModalLancar(null)">Lançar Realizado</button>
+    <button class="btn btn-outline admin-only" onclick="novoMes()">Novo Mês</button>
+    <button class="btn btn-outline admin-only" onclick="abrirModalAgente(null)">+ Agente</button>
+    <button class="btn btn-white admin-only" onclick="abrirModalLancar(null)">Lançar Realizado</button>
+    <button class="btn-lock" id="btn-lock" onclick="toggleAdmin()" title="Área administrativa">🔒</button>
   </div>
 </header>
 
@@ -543,7 +562,7 @@
           <div class="valor-projetado">
             Projeção: <strong>R$ ${valorProj.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px" class="admin-block">
             <button class="btn-lancar" onclick="abrirModalAgente('${ag.id}')">Editar</button>
             <button class="btn-lancar" onclick="abrirModalLancar('${ag.id}')">Lançar</button>
           </div>
@@ -712,6 +731,35 @@
   document.querySelectorAll('.overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
   });
+
+  // ── Admin / senha ───────────────────────────────────────
+  const SENHA_HASH = 'Q25jMzIxdGltYnUh';
+  let adminAtivo = false;
+
+  function toggleAdmin() {
+    if (adminAtivo) {
+      adminAtivo = false;
+      document.body.classList.remove('admin-mode');
+      document.getElementById('btn-lock').textContent = '🔒';
+    } else {
+      const input = prompt('Senha:');
+      if (!input) return;
+      if (btoa(input) === SENHA_HASH) {
+        adminAtivo = true;
+        document.body.classList.add('admin-mode');
+        document.getElementById('btn-lock').textContent = '🔓';
+      } else {
+        alert('Senha incorreta.');
+      }
+    }
+  }
+
+  async function novoMes() {
+    if (!confirm('Zerar todos os realizados para o novo mês? As metas e agentes serão mantidos.')) return;
+    agentes.forEach(ag => ag.realizado = {});
+    await persistir();
+    render();
+  }
 
   // ── Init ────────────────────────────────────────────────
   atualizarData();
