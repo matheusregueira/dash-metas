@@ -38,7 +38,6 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      position: relative;
     }
 
     header h1 { color: white; font-size: 1.2rem; font-weight: 700; }
@@ -78,7 +77,6 @@
       gap: 20px;
     }
 
-    /* Cards dos agentes */
     .agentes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
@@ -107,9 +105,7 @@
     .agente-nome { font-weight: 700; font-size: 1.05rem; }
     .agente-trilha { font-size: 0.78rem; color: var(--gray-text); margin-top: 2px; }
 
-    .agente-score {
-      text-align: right;
-    }
+    .agente-score { text-align: right; }
 
     .score-num {
       font-size: 1.8rem;
@@ -123,10 +119,7 @@
 
     .score-label { font-size: 0.72rem; color: var(--gray-text); margin-top: 2px; }
 
-    /* KPI rows */
     .kpi-list { display: flex; flex-direction: column; gap: 10px; }
-
-    .kpi-item { }
 
     .kpi-top {
       display: flex;
@@ -151,11 +144,10 @@
     .kpi-nums .destaque { font-weight: 700; color: var(--text); }
 
     .kpi-bar-wrap {
-      position: relative;
       height: 8px;
       background: var(--gray-line);
       border-radius: 99px;
-      overflow: visible;
+      overflow: hidden;
     }
 
     .kpi-bar-real {
@@ -163,58 +155,11 @@
       border-radius: 99px;
       background: var(--green);
       transition: width 0.4s ease;
-      position: relative;
-      z-index: 1;
     }
 
-    .kpi-bar-real.warn  { background: var(--yellow); }
-    .kpi-bar-real.bad   { background: var(--red); }
+    .kpi-bar-real.warn { background: var(--yellow); }
+    .kpi-bar-real.bad  { background: var(--red); }
 
-    .kpi-marker {
-      position: absolute;
-      top: -3px;
-      width: 3px;
-      height: 14px;
-      background: var(--gray-text);
-      border-radius: 2px;
-      z-index: 2;
-      transform: translateX(-50%);
-    }
-
-    .marker-label {
-      position: absolute;
-      top: -18px;
-      font-size: 0.65rem;
-      color: var(--gray-text);
-      transform: translateX(-50%);
-      white-space: nowrap;
-    }
-
-    /* TD breakdown */
-    .td-breakdown {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-
-    .td-chip {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 99px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: var(--gray-bg);
-    }
-
-    .td-chip.ok     { background: var(--green-light);  color: var(--green-dark); }
-    .td-chip.warn   { background: var(--yellow-light); color: #92600A; }
-    .td-chip.bad    { background: var(--red-light);    color: #991B1B; }
-    .td-chip-label  { font-weight: 400; opacity: 0.75; }
-
-    /* Rodapé do card */
     .agente-footer {
       margin-top: 14px;
       padding-top: 12px;
@@ -258,7 +203,6 @@
     }
     .btn-lock:hover { background: rgba(255,255,255,0.15); }
 
-    /* Modal */
     .overlay {
       display: none;
       position: fixed;
@@ -309,7 +253,6 @@
     .btn-cancel { background: var(--gray-bg); color: var(--gray-text); }
     .btn-save   { background: var(--green); color: white; }
 
-    /* Empty state */
     .empty {
       text-align: center;
       padding: 60px 20px;
@@ -317,7 +260,6 @@
     }
     .empty h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
 
-    /* Status badge */
     .status-badge {
       font-size: 0.72rem;
       font-weight: 700;
@@ -337,11 +279,10 @@
     <p>Stone Barbacena/MG</p>
   </div>
   <div class="header-right">
-    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
-      <span style="color:rgba(255,255,255,0.7); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.4px;">Atualizado</span>
-      <input type="date" id="data-input"
-        onchange="salvarDataRef(this.value)"
-        style="background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.4); border-radius:7px; padding:4px 8px; color:white; font-size:0.85rem; font-family:inherit; outline:none; cursor:pointer; color-scheme:dark;">
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <span style="color:rgba(255,255,255,0.7);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px;">Atualizado</span>
+      <input type="date" id="data-hoje" onchange="salvarData(this.value)"
+        style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);border-radius:7px;padding:4px 8px;color:white;font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;color-scheme:dark;">
     </div>
     <button class="btn btn-outline admin-only" onclick="novoMes()">Novo Mês</button>
     <button class="btn btn-outline admin-only" onclick="abrirModalAgente(null)">+ Agente</button>
@@ -474,94 +415,31 @@
     2400: 'Agente 4'
   };
 
-  // ── Data de referência (manual ou hoje) ─────────────────
-  let dataRef = localStorage.getItem('dataRef') || null;
-
-  function getDataRef() {
-    return dataRef ? new Date(dataRef + 'T12:00:00') : new Date();
-  }
-
-  function salvarDataRef(val) {
-    dataRef = val || null;
-    if (dataRef) localStorage.setItem('dataRef', dataRef);
-    else localStorage.removeItem('dataRef');
-    render();
-  }
-
-  // ── Data e to-date ──────────────────────────────────────
-  function diasUteis(ano, mes) {
-    let total = 0;
-    const dias = new Date(ano, mes + 1, 0).getDate();
-    for (let d = 1; d <= dias; d++) {
-      const dia = new Date(ano, mes, d).getDay();
-      if (dia !== 0 && dia !== 6) total++;
-    }
-    return total;
-  }
-
-  function diasUteisAte(ano, mes, diaAtual) {
-    let total = 0;
-    for (let d = 1; d <= diaAtual; d++) {
-      const dia = new Date(ano, mes, d).getDay();
-      if (dia !== 0 && dia !== 6) total++;
-    }
-    return total;
-  }
-
-  function proporcaoToDate() {
-    const ref = getDataRef();
-    const ano = ref.getFullYear();
-    const mes = ref.getMonth();
-    const dia = ref.getDate();
-    const total = diasUteis(ano, mes);
-    const ate   = diasUteisAte(ano, mes, dia);
-    return total > 0 ? ate / total : 0;
-  }
-
-  // ── Cálculo do card ─────────────────────────────────────
-  function calcScore(ag, prop) {
+  // ── Cálculo do score ────────────────────────────────────
+  function calcScore(ag) {
     const r = ag.realizado || {};
 
-    // Atingimento real (contra meta do mês inteiro)
-    const naAting    = ag.naMeta  > 0 ? (r.na   || 0) / ag.naMeta  * 100 : 0;
-    const tpvAting   = ag.tpvMeta > 0 ? Math.min((r.tpv || 0) / ag.tpvMeta * 100, 150) : 0;
-    const churnAting = (r.churn   || 0) > 0 ? ag.churnMeta / r.churn * 100 : 0;
+    const naAting    = ag.naMeta    > 0 ? (r.na    || 0) / ag.naMeta    * 100 : 0;
+    const tpvAting   = ag.tpvMeta   > 0 ? Math.min((r.tpv || 0) / ag.tpvMeta * 100, 150) : 0;
+    const churnAting = (r.churn     || 0) > 0 ? ag.churnMeta / r.churn * 100 : 0;
 
-    // Atingimento to date (contra meta esperada até hoje)
-    const metaTDNa    = ag.naMeta    * prop;
-    const metaTDTpv   = ag.tpvMeta   * prop;
-    const metaTDChurn = ag.churnMeta * prop;
-
-    const naAtingTD    = metaTDNa    > 0 ? (r.na    || 0) / metaTDNa    * 100 : 0;
-    const tpvAtingTD   = metaTDTpv   > 0 ? Math.min((r.tpv || 0) / metaTDTpv * 100, 150) : 0;
-    const churnAtingTD = (r.churn    || 0) > 0 ? metaTDChurn / r.churn * 100 : 0;
-
-    // Score real
-    const baseReal = naAting * 0.30 + tpvAting * 0.40 + churnAting * 0.30;
-    const bonusContrib = (r.bonus || 0) > 0 && naAting > 0
+    const base  = naAting * 0.30 + tpvAting * 0.40 + churnAting * 0.30;
+    const bonus = (r.bonus || 0) > 0 && naAting > 0
       ? (r.bonus * naAting * 0.25) * 0.30 : 0;
-    const scoreReal = baseReal + bonusContrib;
 
-    // Score to date
-    const baseTD = naAtingTD * 0.30 + tpvAtingTD * 0.40 + churnAtingTD * 0.30;
-    const bonusTD = (r.bonus || 0) > 0 && naAtingTD > 0
-      ? (r.bonus * naAtingTD * 0.25) * 0.30 : 0;
-    const scoreTD = baseTD + bonusTD;
-
-    return { naAting, tpvAting, churnAting, naAtingTD, tpvAtingTD, churnAtingTD, scoreReal, scoreTD };
+    return { naAting, tpvAting, churnAting, score: base + bonus };
   }
 
-  function statusScore(scoreTD) {
-    if (scoreTD >= 95)  return 'ok';
-    if (scoreTD >= 80)  return 'alerta';
+  function statusScore(score) {
+    if (score >= 95) return 'ok';
+    if (score >= 80) return 'alerta';
     return 'risco';
   }
 
   // ── Renderização ────────────────────────────────────────
   function render() {
-    const grid = document.getElementById('agentes-grid');
+    const grid  = document.getElementById('agentes-grid');
     const empty = document.getElementById('empty-state');
-    const prop = proporcaoToDate();
 
     if (agentes.length === 0) {
       empty.style.display = '';
@@ -574,22 +452,17 @@
     grid.innerHTML = '';
 
     agentes.forEach(ag => {
-      const { naAting, tpvAting, churnAting, naAtingTD, tpvAtingTD, churnAtingTD, scoreReal, scoreTD } = calcScore(ag, prop);
-      let st = statusScore(scoreTD);
-      // Se qualquer KPI estiver atrás do to-date, não pode ficar verde
-      const piorTD = Math.min(naAtingTD, tpvAtingTD, churnAtingTD > 0 ? churnAtingTD : Infinity);
-      if (st === 'ok' && piorTD < tdPct * 0.8) st = 'alerta';
-      if (piorTD < tdPct * 0.6) st = 'risco';
-      const tdPct = prop * 100;
+      const { naAting, tpvAting, churnAting, score } = calcScore(ag);
+      const st         = statusScore(score);
       const trilhaNome = TRILHAS[ag.trilha] || 'Aspira';
-      const valorProj  = ag.trilha * scoreTD / 100;
+      const comissao   = ag.trilha * score / 100;
 
-      const card = document.createElement('div');
-      card.className = `agente-card status-${st}`;
+      const card       = document.createElement('div');
+      card.className   = `agente-card status-${st}`;
 
-      const badgeClass  = st === 'ok' ? 'badge-ok' : st === 'alerta' ? 'badge-alerta' : 'badge-risco';
-      const badgeLabel  = st === 'ok' ? 'No ritmo' : st === 'alerta' ? 'Atenção' : 'Em risco';
-      const scoreClass  = st === 'ok' ? '' : st === 'alerta' ? 'alerta' : 'risco';
+      const badgeClass = st === 'ok' ? 'badge-ok' : st === 'alerta' ? 'badge-alerta' : 'badge-risco';
+      const badgeLabel = st === 'ok' ? 'No ritmo' : st === 'alerta' ? 'Atenção' : 'Em risco';
+      const scoreClass = st === 'ok' ? '' : st === 'alerta' ? 'alerta' : 'risco';
 
       card.innerHTML = `
         <div class="agente-header">
@@ -598,26 +471,20 @@
             <div class="agente-trilha">${trilhaNome} · 100% = R$ ${Number(ag.trilha).toLocaleString('pt-BR')}</div>
           </div>
           <div class="agente-score">
-            <div class="score-num ${scoreClass}">${scoreTD.toFixed(1)}%</div>
+            <div class="score-num ${scoreClass}">${score.toFixed(1)}%</div>
             <div class="score-label"><span class="status-badge ${badgeClass}">${badgeLabel}</span></div>
           </div>
         </div>
 
         <div class="kpi-list">
-          ${kpiRow('NA', naAting, tdPct, ag.naMeta, ag.realizado?.na || 0, false, ag.naMeta * prop)}
-          ${kpiRow('TPV M1', tpvAting, tdPct, ag.tpvMeta, ag.realizado?.tpv || 0, false, ag.tpvMeta * prop)}
-          ${kpiRow('Churn', churnAting, tdPct, ag.churnMeta, ag.realizado?.churn || 0, true, null)}
-        </div>
-
-        <div class="td-breakdown">
-          ${tdChip('NA', naAtingTD, tdPct)}
-          ${tdChip('TPV', tpvAtingTD, tdPct)}
-          ${tdChip('Churn', churnAtingTD, tdPct)}
+          ${kpiRow('NA',     naAting,    ag.naMeta,    ag.realizado?.na    || 0, false)}
+          ${kpiRow('TPV M1', tpvAting,   ag.tpvMeta,   ag.realizado?.tpv   || 0, false)}
+          ${kpiRow('Churn',  churnAting, ag.churnMeta, ag.realizado?.churn || 0, true)}
         </div>
 
         <div class="agente-footer">
           <div class="valor-projetado">
-            Projeção: <strong>R$ ${valorProj.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+            Comissão: <strong>R$ ${comissao.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
           </div>
           <div style="display:flex;gap:8px" class="admin-block">
             <button class="btn-lancar" onclick="abrirModalAgente('${ag.id}')">Editar</button>
@@ -630,39 +497,17 @@
     });
   }
 
-  function tdChip(nome, atingTD, tdPct) {
-    const cls = atingTD >= tdPct ? 'ok' : atingTD >= tdPct * 0.8 ? 'warn' : 'bad';
-    return `<span class="td-chip ${cls}"><span class="td-chip-label">${nome} TD</span> ${atingTD.toFixed(0)}%</span>`;
-  }
-
-  function kpiRow(nome, ating, tdPct, meta, real, inverso, metaTD) {
+  function kpiRow(nome, ating, meta, real, inverso) {
     const barReal = Math.min(ating, 200) / 2;
-    const barTD   = Math.min(tdPct, 100);
-    let cls = '';
-    if (!inverso) {
-      cls = ating >= tdPct ? '' : ating >= tdPct * 0.8 ? 'warn' : 'bad';
-    } else {
-      cls = ating >= tdPct ? '' : ating >= tdPct * 0.8 ? 'warn' : 'bad';
-    }
+    const cls = ating >= 100 ? '' : ating >= 80 ? 'warn' : 'bad';
 
     const metaFmt = inverso
       ? meta.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
-      : (nome === 'TPV M1'
-        ? 'R$ ' + Number(meta).toLocaleString('pt-BR')
-        : meta);
+      : (nome === 'TPV M1' ? 'R$ ' + Number(meta).toLocaleString('pt-BR') : meta);
 
     const realFmt = inverso
       ? Number(real).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
-      : (nome === 'TPV M1'
-        ? 'R$ ' + Number(real).toLocaleString('pt-BR')
-        : real);
-
-    let tdFmt = '';
-    if (metaTD !== null && metaTD !== undefined) {
-      tdFmt = nome === 'TPV M1'
-        ? 'R$ ' + Number(metaTD).toLocaleString('pt-BR', {maximumFractionDigits:0})
-        : Math.round(metaTD).toString();
-    }
+      : (nome === 'TPV M1' ? 'R$ ' + Number(real).toLocaleString('pt-BR') : real);
 
     return `
       <div class="kpi-item">
@@ -671,13 +516,11 @@
           <div class="kpi-nums">
             <span>Meta: <span class="destaque">${metaFmt}</span></span>
             <span>Real: <span class="destaque">${realFmt}</span></span>
-            ${tdFmt ? `<span>Esp.TD: <span class="destaque">${tdFmt}</span></span>` : ''}
             <span>Ating: <span class="destaque">${ating.toFixed(1)}%</span></span>
           </div>
         </div>
         <div class="kpi-bar-wrap">
           <div class="kpi-bar-real ${cls}" style="width:${barReal}%"></div>
-          <div class="kpi-marker" style="left:${barTD}%"></div>
         </div>
       </div>`;
   }
@@ -761,8 +604,8 @@
   }
 
   async function salvarLancamento() {
-    const id    = document.getElementById('lancar-agente').value;
-    const ag    = agentes.find(a => a.id === id);
+    const id = document.getElementById('lancar-agente').value;
+    const ag = agentes.find(a => a.id === id);
     if (!ag) return;
 
     ag.realizado = {
@@ -789,11 +632,17 @@
 
   // ── Data no header ──────────────────────────────────────
   function atualizarData() {
-    const ref  = getDataRef();
-    const yyyy = ref.getFullYear();
-    const mm   = String(ref.getMonth() + 1).padStart(2, '0');
-    const dd   = String(ref.getDate()).padStart(2, '0');
-    document.getElementById('data-input').value = `${yyyy}-${mm}-${dd}`;
+    const salva = localStorage.getItem('dataAtualizado');
+    const d = salva ? new Date(salva + 'T12:00:00') : new Date();
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    document.getElementById('data-hoje').value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  function salvarData(val) {
+    if (val) localStorage.setItem('dataAtualizado', val);
+    else localStorage.removeItem('dataAtualizado');
   }
 
   // ── Fechar modal clicando fora ──────────────────────────
