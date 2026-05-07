@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Metas — Stone Barbacena</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --green: #00A868;
+      --green-dark: #007A4C;
+      --green-light: #E6F7F0;
+      --red: #E74C3C;
+      --red-light: #FDF0EF;
+      --yellow: #F5A623;
+      --yellow-light: #FFFBEB;
+      --gray-bg: #F4F5F7;
+      --gray-line: #EBEBEB;
+      --gray-text: #6B7280;
+      --text: #111827;
+      --white: #fff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--gray-bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--green);
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    header h1 { color: white; font-size: 1.2rem; font-weight: 700; }
+    header p  { color: rgba(255,255,255,0.85); font-size: 0.82rem; margin-top: 2px; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #data-hoje {
+      color: rgba(255,255,255,0.9);
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-white { background: white; color: var(--green-dark); }
+    .btn-outline { background: transparent; border: 1.5px solid rgba(255,255,255,0.6); color: white; }
+
+    .container {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Cards dos agentes */
+    .agentes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+      gap: 20px;
+    }
+
+    .agente-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+      border-left: 4px solid var(--gray-line);
+    }
+
+    .agente-card.status-ok     { border-left-color: var(--green); }
+    .agente-card.status-alerta { border-left-color: var(--yellow); }
+    .agente-card.status-risco  { border-left-color: var(--red); }
+
+    .agente-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .agente-nome { font-weight: 700; font-size: 1.05rem; }
+    .agente-trilha { font-size: 0.78rem; color: var(--gray-text); margin-top: 2px; }
+
+    .agente-score {
+      text-align: right;
+    }
+
+    .score-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--green);
+      line-height: 1;
+    }
+
+    .score-num.alerta { color: var(--yellow); }
+    .score-num.risco  { color: var(--red); }
+
+    .score-label { font-size: 0.72rem; color: var(--gray-text); margin-top: 2px; }
+
+    /* KPI rows */
+    .kpi-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .kpi-item { }
+
+    .kpi-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .kpi-nome { font-size: 0.82rem; font-weight: 600; }
+
+    .kpi-nums {
+      display: flex;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--gray-text);
+    }
+
+    .kpi-nums span { white-space: nowrap; }
+    .kpi-nums .destaque { font-weight: 700; color: var(--text); }
+
+    .kpi-bar-wrap {
+      position: relative;
+      height: 8px;
+      background: var(--gray-line);
+      border-radius: 99px;
+      overflow: visible;
+    }
+
+    .kpi-bar-real {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--green);
+      transition: width 0.4s ease;
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi-bar-real.warn  { background: var(--yellow); }
+    .kpi-bar-real.bad   { background: var(--red); }
+
+    .kpi-marker {
+      position: absolute;
+      top: -3px;
+      width: 3px;
+      height: 14px;
+      background: var(--gray-text);
+      border-radius: 2px;
+      z-index: 2;
+      transform: translateX(-50%);
+    }
+
+    .marker-label {
+      position: absolute;
+      top: -18px;
+      font-size: 0.65rem;
+      color: var(--gray-text);
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    /* Rodapé do card */
+    .agente-footer {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--gray-line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .valor-projetado { font-size: 0.82rem; color: var(--gray-text); }
+    .valor-projetado strong { color: var(--text); font-size: 0.95rem; }
+
+    .btn-lancar {
+      padding: 6px 14px;
+      background: var(--green-light);
+      color: var(--green-dark);
+      border: 1.5px solid var(--green);
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-lancar:hover { background: var(--green); color: white; }
+
+    /* Modal */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      margin: 16px;
+    }
+
+    .modal h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 5px; }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-line);
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--green); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .btn-cancel { background: var(--gray-bg); color: var(--gray-text); }
+    .btn-save   { background: var(--green); color: white; }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-text);
+    }
+    .empty h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+
+    /* Status badge */
+    .status-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+    }
+    .badge-ok     { background: var(--green-light); color: var(--green-dark); }
+    .badge-alerta { background: var(--yellow-light); color: #92600A; }
+    .badge-risco  { background: var(--red-light); color: #991B1B; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dashboard de Metas</h1>
+    <p>Stone Barbacena/MG</p>
+  </div>
+  <div class="header-right">
+    <span id="data-hoje"></span>
+    <button class="btn btn-outline" onclick="abrirModalAgente(null)">+ Agente</button>
+    <button class="btn btn-white" onclick="abrirModalLancar(null)">Lançar Realizado</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="agentes-grid" id="agentes-grid">
+    <div class="empty" id="empty-state">
+      <h3>Nenhum agente cadastrado</h3>
+      <p>Clique em "+ Agente" para começar</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cadastro de Agente -->
+<div class="overlay" id="modal-agente">
+  <div class="modal">
+    <h2 id="modal-agente-titulo">Cadastrar Agente</h2>
+    <input type="hidden" id="agente-edit-id">
+
+    <div class="form-group">
+      <label>Nome do Agente</label>
+      <input type="text" id="ag-nome" placeholder="Ex: João Silva">
+    </div>
+
+    <div class="form-group">
+      <label>Trilha</label>
+      <select id="ag-trilha">
+        <option value="600">Aspira — R$ 600</option>
+        <option value="1200">Agente 1 — R$ 1.200</option>
+        <option value="1700">Agente 2 — R$ 1.700</option>
+        <option value="2000">Agente 3 — R$ 2.000</option>
+        <option value="2400">Agente 4 — R$ 2.400</option>
+      </select>
+    </div>
+
+    <p style="font-size:0.8rem;font-weight:700;color:var(--gray-text);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px">Metas do Mês</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>NA — Meta</label>
+        <input type="number" id="ag-na-meta" placeholder="Ex: 12" min="0">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 30%</p>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>TPV M1 — Meta (R$)</label>
+        <input type="number" id="ag-tpv-meta" placeholder="Ex: 330000" min="0">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 40% · Teto 150%</p>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Churn — Meta (%)</label>
+        <input type="number" id="ag-churn-meta" placeholder="Ex: 5.6" min="0" step="0.1">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 30%</p>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="fecharModal('modal-agente')">Cancelar</button>
+      <button class="btn btn-save" onclick="salvarAgente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lançar Realizado -->
+<div class="overlay" id="modal-lancar">
+  <div class="modal">
+    <h2>Lançar Realizado</h2>
+
+    <div class="form-group">
+      <label>Agente</label>
+      <select id="lancar-agente"></select>
+    </div>
+
+    <div class="form-group">
+      <label>NA Realizado</label>
+      <input type="number" id="lancar-na" placeholder="0" min="0">
+    </div>
+
+    <div class="form-group">
+      <label>TPV M1 Realizado (R$)</label>
+      <input type="number" id="lancar-tpv" placeholder="0" min="0">
+    </div>
+
+    <div class="form-group">
+      <label>Churn Realizado (%)</label>
+      <input type="number" id="lancar-churn" placeholder="0" min="0" step="0.1">
+    </div>
+
+    <div class="form-group">
+      <label>Clientes 50k+ (bônus)</label>
+      <input type="number" id="lancar-bonus" placeholder="0" min="0">
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="fecharModal('modal-lancar')">Cancelar</button>
+      <button class="btn btn-save" onclick="salvarLancamento()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Supabase ────────────────────────────────────────────
+  const SUPA_URL = 'https://cyseabealxbtwubvhyrh.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c2VhYmVhbHhidHd1YnZoeXJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzkwNzgsImV4cCI6MjA5Mzc1NTA3OH0.eHXjTtjyCf7fYusZhUJmRh9sKWe5tNGXGI06tVjbjeM';
+  const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  // ── Estado ─────────────────────────────────────────────
+  let agentes = [];
+
+  const TRILHAS = {
+    600:  'Aspira',
+    1200: 'Agente 1',
+    1700: 'Agente 2',
+    2000: 'Agente 3',
+    2400: 'Agente 4'
+  };
+
+  // ── Data e to-date ──────────────────────────────────────
+  function diasUteis(ano, mes) {
+    let total = 0;
+    const dias = new Date(ano, mes + 1, 0).getDate();
+    for (let d = 1; d <= dias; d++) {
+      const dia = new Date(ano, mes, d).getDay();
+      if (dia !== 0 && dia !== 6) total++;
+    }
+    return total;
+  }
+
+  function diasUteisAte(ano, mes, diaAtual) {
+    let total = 0;
+    for (let d = 1; d <= diaAtual; d++) {
+      const dia = new Date(ano, mes, d).getDay();
+      if (dia !== 0 && dia !== 6) total++;
+    }
+    return total;
+  }
+
+  function proporcaoToDate() {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth();
+    const dia = hoje.getDate();
+    const total = diasUteis(ano, mes);
+    const ate   = diasUteisAte(ano, mes, dia);
+    return total > 0 ? ate / total : 0;
+  }
+
+  // ── Cálculo do card ─────────────────────────────────────
+  function calcScore(ag, prop) {
+    const r = ag.realizado || {};
+
+    // Atingimento real (contra meta do mês inteiro)
+    const naAting    = ag.naMeta  > 0 ? (r.na   || 0) / ag.naMeta  * 100 : 0;
+    const tpvAting   = ag.tpvMeta > 0 ? Math.min((r.tpv || 0) / ag.tpvMeta * 100, 150) : 0;
+    const churnAting = (r.churn   || 0) > 0 ? ag.churnMeta / r.churn * 100 : 0;
+
+    // Atingimento to date (contra meta esperada até hoje)
+    const metaTDNa    = ag.naMeta    * prop;
+    const metaTDTpv   = ag.tpvMeta   * prop;
+    const metaTDChurn = ag.churnMeta * prop;
+
+    const naAtingTD    = metaTDNa    > 0 ? (r.na    || 0) / metaTDNa    * 100 : 0;
+    const tpvAtingTD   = metaTDTpv   > 0 ? Math.min((r.tpv || 0) / metaTDTpv * 100, 150) : 0;
+    const churnAtingTD = (r.churn    || 0) > 0 ? metaTDChurn / r.churn * 100 : 0;
+
+    // Score real
+    const baseReal = naAting * 0.30 + tpvAting * 0.40 + churnAting * 0.30;
+    const bonusContrib = (r.bonus || 0) > 0 && naAting > 0
+      ? (r.bonus * naAting * 0.25) * 0.30 : 0;
+    const scoreReal = baseReal + bonusContrib;
+
+    // Score to date
+    const baseTD = naAtingTD * 0.30 + tpvAtingTD * 0.40 + churnAtingTD * 0.30;
+    const bonusTD = (r.bonus || 0) > 0 && naAtingTD > 0
+      ? (r.bonus * naAtingTD * 0.25) * 0.30 : 0;
+    const scoreTD = baseTD + bonusTD;
+
+    return { naAting, tpvAting, churnAting, scoreReal, scoreTD };
+  }
+
+  function statusScore(scoreTD) {
+    if (scoreTD >= 95)  return 'ok';
+    if (scoreTD >= 80)  return 'alerta';
+    return 'risco';
+  }
+
+  // ── Renderização ────────────────────────────────────────
+  function render() {
+    const grid = document.getElementById('agentes-grid');
+    const empty = document.getElementById('empty-state');
+    const prop = proporcaoToDate();
+
+    if (agentes.length === 0) {
+      empty.style.display = '';
+      grid.innerHTML = '';
+      grid.appendChild(empty);
+      return;
+    }
+
+    empty.style.display = 'none';
+    grid.innerHTML = '';
+
+    agentes.forEach(ag => {
+      const { naAting, tpvAting, churnAting, scoreReal, scoreTD } = calcScore(ag, prop);
+      const st = statusScore(scoreTD);
+      const tdPct = prop * 100;
+      const trilhaNome = TRILHAS[ag.trilha] || 'Aspira';
+      const valorProj  = ag.trilha * scoreTD / 100;
+
+      const card = document.createElement('div');
+      card.className = `agente-card status-${st}`;
+
+      const badgeClass  = st === 'ok' ? 'badge-ok' : st === 'alerta' ? 'badge-alerta' : 'badge-risco';
+      const badgeLabel  = st === 'ok' ? 'No ritmo' : st === 'alerta' ? 'Atenção' : 'Em risco';
+      const scoreClass  = st === 'ok' ? '' : st === 'alerta' ? 'alerta' : 'risco';
+
+      card.innerHTML = `
+        <div class="agente-header">
+          <div>
+            <div class="agente-nome">${ag.nome}</div>
+            <div class="agente-trilha">${trilhaNome} · 100% = R$ ${Number(ag.trilha).toLocaleString('pt-BR')}</div>
+          </div>
+          <div class="agente-score">
+            <div class="score-num ${scoreClass}">${scoreTD.toFixed(1)}%</div>
+            <div class="score-label"><span class="status-badge ${badgeClass}">${badgeLabel}</span></div>
+          </div>
+        </div>
+
+        <div class="kpi-list">
+          ${kpiRow('NA', naAting, tdPct, ag.naMeta, ag.realizado?.na || 0, false)}
+          ${kpiRow('TPV M1', tpvAting, tdPct, ag.tpvMeta, ag.realizado?.tpv || 0, false)}
+          ${kpiRow('Churn', churnAting, tdPct, ag.churnMeta, ag.realizado?.churn || 0, true)}
+        </div>
+
+        <div class="agente-footer">
+          <div class="valor-projetado">
+            Projeção: <strong>R$ ${valorProj.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-lancar" onclick="abrirModalAgente('${ag.id}')">Editar</button>
+            <button class="btn-lancar" onclick="abrirModalLancar('${ag.id}')">Lançar</button>
+          </div>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+  }
+
+  function kpiRow(nome, ating, tdPct, meta, real, inverso) {
+    const barReal = Math.min(ating, 200) / 2;
+    const barTD   = Math.min(tdPct, 100);
+    let cls = '';
+    if (!inverso) {
+      cls = ating >= tdPct ? '' : ating >= tdPct * 0.8 ? 'warn' : 'bad';
+    } else {
+      cls = ating >= tdPct ? '' : ating >= tdPct * 0.8 ? 'warn' : 'bad';
+    }
+
+    const metaFmt = inverso
+      ? meta.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      : (nome === 'TPV M1'
+        ? 'R$ ' + Number(meta).toLocaleString('pt-BR')
+        : meta);
+
+    const realFmt = inverso
+      ? Number(real).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      : (nome === 'TPV M1'
+        ? 'R$ ' + Number(real).toLocaleString('pt-BR')
+        : real);
+
+    return `
+      <div class="kpi-item">
+        <div class="kpi-top">
+          <span class="kpi-nome">${nome}</span>
+          <div class="kpi-nums">
+            <span>Meta: <span class="destaque">${metaFmt}</span></span>
+            <span>Real: <span class="destaque">${realFmt}</span></span>
+            <span>Ating: <span class="destaque">${ating.toFixed(1)}%</span></span>
+          </div>
+        </div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-real ${cls}" style="width:${barReal}%"></div>
+          <div class="kpi-marker" style="left:${barTD}%">
+            <div class="marker-label">TD ${tdPct.toFixed(0)}%</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Modais ──────────────────────────────────────────────
+  function abrirModalAgente(id) {
+    document.getElementById('agente-edit-id').value = id || '';
+    if (id) {
+      const ag = agentes.find(a => a.id === id);
+      document.getElementById('modal-agente-titulo').textContent = 'Editar Agente';
+      document.getElementById('ag-nome').value       = ag.nome;
+      document.getElementById('ag-trilha').value     = ag.trilha;
+      document.getElementById('ag-na-meta').value    = ag.naMeta;
+      document.getElementById('ag-tpv-meta').value   = ag.tpvMeta;
+      document.getElementById('ag-churn-meta').value = ag.churnMeta;
+    } else {
+      document.getElementById('modal-agente-titulo').textContent = 'Cadastrar Agente';
+      document.getElementById('ag-nome').value       = '';
+      document.getElementById('ag-trilha').value     = '600';
+      document.getElementById('ag-na-meta').value    = '';
+      document.getElementById('ag-tpv-meta').value   = '';
+      document.getElementById('ag-churn-meta').value = '';
+    }
+    document.getElementById('modal-agente').classList.add('open');
+  }
+
+  function abrirModalLancar(id) {
+    const sel = document.getElementById('lancar-agente');
+    sel.innerHTML = agentes.map(a => `<option value="${a.id}" ${a.id===id?'selected':''}>${a.nome}</option>`).join('');
+    if (id) {
+      const ag = agentes.find(a => a.id === id);
+      const r  = ag.realizado || {};
+      document.getElementById('lancar-na').value    = r.na    || '';
+      document.getElementById('lancar-tpv').value   = r.tpv   || '';
+      document.getElementById('lancar-churn').value = r.churn || '';
+      document.getElementById('lancar-bonus').value = r.bonus || '';
+    } else {
+      document.getElementById('lancar-na').value    = '';
+      document.getElementById('lancar-tpv').value   = '';
+      document.getElementById('lancar-churn').value = '';
+      document.getElementById('lancar-bonus').value = '';
+    }
+    sel.addEventListener('change', () => {
+      const ag = agentes.find(a => a.id === sel.value);
+      const r  = ag?.realizado || {};
+      document.getElementById('lancar-na').value    = r.na    || '';
+      document.getElementById('lancar-tpv').value   = r.tpv   || '';
+      document.getElementById('lancar-churn').value = r.churn || '';
+      document.getElementById('lancar-bonus').value = r.bonus || '';
+    });
+    document.getElementById('modal-lancar').classList.add('open');
+  }
+
+  function fecharModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // ── Salvar ──────────────────────────────────────────────
+  async function salvarAgente() {
+    const nome      = document.getElementById('ag-nome').value.trim();
+    const trilha    = Number(document.getElementById('ag-trilha').value);
+    const naMeta    = Number(document.getElementById('ag-na-meta').value);
+    const tpvMeta   = Number(document.getElementById('ag-tpv-meta').value);
+    const churnMeta = Number(document.getElementById('ag-churn-meta').value);
+
+    if (!nome || !naMeta || !tpvMeta || !churnMeta) {
+      alert('Preencha todos os campos.'); return;
+    }
+
+    const editId = document.getElementById('agente-edit-id').value;
+    if (editId) {
+      const ag = agentes.find(a => a.id === editId);
+      Object.assign(ag, { nome, trilha, naMeta, tpvMeta, churnMeta });
+    } else {
+      agentes.push({ id: Date.now().toString(), nome, trilha, naMeta, tpvMeta, churnMeta, realizado: {} });
+    }
+
+    persistir();
+    fecharModal('modal-agente');
+    render();
+  }
+
+  async function salvarLancamento() {
+    const id    = document.getElementById('lancar-agente').value;
+    const ag    = agentes.find(a => a.id === id);
+    if (!ag) return;
+
+    ag.realizado = {
+      na:    Number(document.getElementById('lancar-na').value)    || 0,
+      tpv:   Number(document.getElementById('lancar-tpv').value)   || 0,
+      churn: Number(document.getElementById('lancar-churn').value) || 0,
+      bonus: Number(document.getElementById('lancar-bonus').value) || 0,
+    };
+
+    persistir();
+    fecharModal('modal-lancar');
+    render();
+  }
+
+  async function persistir() {
+    await sb.from('dados').upsert({ id: 'agentes', valor: agentes });
+  }
+
+  async function carregarDados() {
+    const { data } = await sb.from('dados').select('valor').eq('id', 'agentes').single();
+    if (data?.valor) agentes = data.valor;
+    render();
+  }
+
+  // ── Data no header ──────────────────────────────────────
+  function atualizarData() {
+    const hoje = new Date();
+    const opts = { weekday:'long', day:'2-digit', month:'long' };
+    document.getElementById('data-hoje').textContent =
+      hoje.toLocaleDateString('pt-BR', opts);
+  }
+
+  // ── Fechar modal clicando fora ──────────────────────────
+  document.querySelectorAll('.overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  // ── Init ────────────────────────────────────────────────
+  atualizarData();
+  carregarDados();
+</script>
+
+</body>
+</html>
