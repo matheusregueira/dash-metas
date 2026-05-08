@@ -269,20 +269,66 @@
     .badge-ok     { background: var(--green-light); color: var(--green-dark); }
     .badge-alerta { background: var(--yellow-light); color: #92600A; }
     .badge-risco  { background: var(--red-light); color: #991B1B; }
+
+    .tabs-bar {
+      background: var(--green-dark);
+      padding: 0 28px;
+      display: flex;
+      gap: 4px;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.65);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { color: white; border-bottom-color: white; }
+    .tab-btn:hover  { color: white; }
+
+    .btn-nav {
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.4);
+      color: white;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-nav:hover { background: rgba(255,255,255,0.28); }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>Dashboard de Metas</h1>
-    <p>Stone Barbacena/MG</p>
+  <div style="display:flex;align-items:center;gap:12px">
+    <img src="logo.png" alt="Logo" style="height:40px;object-fit:contain;">
+    <div>
+      <h1>Dashboard de Metas</h1>
+      <p>Stone Barbacena/MG</p>
+    </div>
   </div>
   <div class="header-right">
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-      <span style="color:rgba(255,255,255,0.7);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px;">Atualizado</span>
+      <span style="color:rgba(255,255,255,0.7);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px;">Última atualização</span>
       <input type="date" id="data-hoje" onchange="salvarData(this.value)"
         style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);border-radius:7px;padding:4px 8px;color:white;font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;color-scheme:dark;">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button id="btn-mes-prev" class="btn-nav" onclick="mesAnterior()">&#8249;</button>
+      <span id="mes-label" style="color:white;font-weight:700;font-size:0.95rem;min-width:130px;text-align:center;">—</span>
+      <button id="btn-mes-next" class="btn-nav" onclick="mesSeguinte()">&#8250;</button>
     </div>
     <button class="btn btn-outline admin-only" onclick="novoMes()">Novo Mês</button>
     <button class="btn btn-outline admin-only" onclick="abrirModalAgente(null)">+ Agente</button>
@@ -291,12 +337,22 @@
   </div>
 </header>
 
+<div class="tabs-bar">
+  <button class="tab-btn active" id="tab-btn-comercial" onclick="trocarAba('comercial')">Comercial</button>
+  <button class="tab-btn" id="tab-btn-logistica" onclick="trocarAba('logistica')">Logística</button>
+</div>
+
 <div class="container">
-  <div class="agentes-grid" id="agentes-grid">
-    <div class="empty" id="empty-state">
-      <h3>Nenhum agente cadastrado</h3>
-      <p>Clique em "+ Agente" para começar</p>
+  <div id="tab-comercial">
+    <div class="agentes-grid" id="agentes-grid">
+      <div class="empty" id="empty-state">
+        <h3>Nenhum agente cadastrado</h3>
+        <p>Clique em "+ Agente" para começar</p>
+      </div>
     </div>
+  </div>
+  <div id="tab-logistica" style="display:none">
+    <div id="log-card-wrap"></div>
   </div>
 </div>
 
@@ -398,6 +454,103 @@
   </div>
 </div>
 
+<!-- Modal: Configurar Logística -->
+<div class="overlay" id="modal-log-config">
+  <div class="modal">
+    <h2>Configurar Logística</h2>
+
+    <div class="form-group">
+      <label>Nome</label>
+      <input type="text" id="log-nome" placeholder="Ex: Ana Silva">
+    </div>
+
+    <p style="font-size:0.8rem;font-weight:700;color:var(--gray-text);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px">Metas</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>TMA Stone (meta &lt;)</label>
+        <input type="number" id="log-tma-stone" placeholder="Ex: 0.85" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>TMA Ton (meta &lt;)</label>
+        <input type="number" id="log-tma-ton" placeholder="Ex: 2.5" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Ciclo Triagem (meta &lt;)</label>
+        <input type="number" id="log-ciclo" placeholder="Ex: 0.9" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>TMA Bobinas (meta &lt;)</label>
+        <input type="number" id="log-tma-bobinas" placeholder="Ex: 0.9" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>SLA Stone (%)</label>
+        <input type="number" id="log-sla-stone" placeholder="Ex: 97" step="0.1" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label>SLA Ton (%)</label>
+        <input type="number" id="log-sla-ton" placeholder="Ex: 97" step="0.1" min="0" max="100">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="fecharModal('modal-log-config')">Cancelar</button>
+      <button class="btn btn-save" onclick="salvarLogConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lançar Realizado Logística -->
+<div class="overlay" id="modal-log-lancar">
+  <div class="modal">
+    <h2>Lançar Realizado — Logística</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>TMA Stone</label>
+        <input type="number" id="log-r-tma-stone" placeholder="0" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>TMA Ton</label>
+        <input type="number" id="log-r-tma-ton" placeholder="0" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Ciclo Triagem</label>
+        <input type="number" id="log-r-ciclo" placeholder="0" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>TMA Bobinas</label>
+        <input type="number" id="log-r-tma-bobinas" placeholder="0" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>SLA Stone (%)</label>
+        <input type="number" id="log-r-sla-stone" placeholder="0" step="0.1" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label>SLA Ton (%)</label>
+        <input type="number" id="log-r-sla-ton" placeholder="0" step="0.1" min="0" max="100">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="fecharModal('modal-log-lancar')">Cancelar</button>
+      <button class="btn btn-save" onclick="salvarLogLancamento()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── Supabase ────────────────────────────────────────────
   const SUPA_URL = 'https://cyseabealxbtwubvhyrh.supabase.co';
@@ -460,8 +613,6 @@
       const card       = document.createElement('div');
       card.className   = `agente-card status-${st}`;
 
-      const badgeClass = st === 'ok' ? 'badge-ok' : st === 'alerta' ? 'badge-alerta' : 'badge-risco';
-      const badgeLabel = st === 'ok' ? 'No ritmo' : st === 'alerta' ? 'Atenção' : 'Abaixo';
       const scoreClass = st === 'ok' ? '' : st === 'alerta' ? 'alerta' : 'risco';
 
       card.innerHTML = `
@@ -472,7 +623,6 @@
           </div>
           <div class="agente-score">
             <div class="score-num ${scoreClass}">${score.toFixed(1)}%</div>
-            <div class="score-label"><span class="status-badge ${badgeClass}">${badgeLabel}</span></div>
           </div>
         </div>
 
@@ -621,29 +771,9 @@
   }
 
   async function persistir() {
-    await sb.from('dados').upsert({ id: 'agentes', valor: agentes });
+    await sb.from('dados').upsert({ id: `mes_${mesAtual}_agentes`, valor: agentes });
   }
 
-  async function carregarDados() {
-    const { data } = await sb.from('dados').select('valor').eq('id', 'agentes').single();
-    if (data?.valor) agentes = data.valor;
-    render();
-  }
-
-  // ── Data no header ──────────────────────────────────────
-  function atualizarData() {
-    const salva = localStorage.getItem('dataAtualizado');
-    const d = salva ? new Date(salva + 'T12:00:00') : new Date();
-    const yyyy = d.getFullYear();
-    const mm   = String(d.getMonth() + 1).padStart(2, '0');
-    const dd   = String(d.getDate()).padStart(2, '0');
-    document.getElementById('data-hoje').value = `${yyyy}-${mm}-${dd}`;
-  }
-
-  function salvarData(val) {
-    if (val) localStorage.setItem('dataAtualizado', val);
-    else localStorage.removeItem('dataAtualizado');
-  }
 
   // ── Fechar modal clicando fora ──────────────────────────
   document.querySelectorAll('.overlay').forEach(el => {
@@ -673,15 +803,283 @@
   }
 
   async function novoMes() {
-    if (!confirm('Zerar todos os realizados para o novo mês? As metas e agentes serão mantidos.')) return;
-    agentes.forEach(ag => ag.realizado = {});
-    await persistir();
+    if (!confirm('Criar novo mês? Agentes e metas são mantidos, realizados zerados.')) return;
+    const [ano, mes] = mesAtual.split('_').map(Number);
+    const d = new Date(ano, mes, 1);
+    const proxChave = `${d.getFullYear()}_${String(d.getMonth()+1).padStart(2,'0')}`;
+    const novosAgentes  = agentes.map(ag => ({ ...ag, realizado: {} }));
+    const novaLogistica = logistica ? { ...logistica, realizado: {} } : null;
+    await Promise.all([
+      sb.from('dados').upsert({ id: `mes_${proxChave}_agentes`, valor: novosAgentes }),
+      novaLogistica ? sb.from('dados').upsert({ id: `mes_${proxChave}_logistica`, valor: novaLogistica }) : Promise.resolve()
+    ]);
+    if (!mesesDisponiveis.includes(proxChave)) mesesDisponiveis.push(proxChave);
+    await carregarMes(proxChave);
+  }
+
+  // ── Logística ────────────────────────────────────────────
+  let logistica = null;
+
+  const COMISSAO_LOG = 600;
+  const PESOS_LOG = {
+    tmaStone: 0.25, tmaTon: 0.25,
+    ciclo: 0.1667, tmaBobinas: 0.1667,
+    slaStone: 0.0833, slaTon: 0.0833
+  };
+
+  function calcScoreLog(log) {
+    const m = log.metas    || {};
+    const r = log.realizado || {};
+
+    // Inverso: menor é melhor → ating = meta/real * 100
+    const atTmaStone   = (r.tmaStone   > 0 && m.tmaStone   > 0) ? Math.min(m.tmaStone   / r.tmaStone   * 100, 100) : 0;
+    const atTmaTon     = (r.tmaTon     > 0 && m.tmaTon     > 0) ? Math.min(m.tmaTon     / r.tmaTon     * 100, 100) : 0;
+    const atCiclo      = (r.ciclo      > 0 && m.ciclo      > 0) ? Math.min(m.ciclo      / r.ciclo      * 100, 100) : 0;
+    const atTmaBobinas = (r.tmaBobinas > 0 && m.tmaBobinas > 0) ? Math.min(m.tmaBobinas / r.tmaBobinas * 100, 100) : 0;
+    // Normal: maior é melhor → ating = real/meta * 100
+    const atSlaStone   = (m.slaStone   > 0) ? Math.min(r.slaStone   / m.slaStone   * 100, 100) : 0;
+    const atSlaTon     = (m.slaTon     > 0) ? Math.min(r.slaTon     / m.slaTon     * 100, 100) : 0;
+
+    const score = atTmaStone * 0.25 + atTmaTon * 0.25
+                + atSlaStone * 0.0833 + atSlaTon * 0.0833
+                + atCiclo * 0.1667 + atTmaBobinas * 0.1667;
+
+    // Comissão proporcional: cada KPI batido (ating = 100%) libera seu peso * R$600
+    const comissao =
+      (atTmaStone   >= 100 ? COMISSAO_LOG * 0.25   : 0) +
+      (atTmaTon     >= 100 ? COMISSAO_LOG * 0.25   : 0) +
+      (atCiclo      >= 100 ? COMISSAO_LOG * 0.1667 : 0) +
+      (atTmaBobinas >= 100 ? COMISSAO_LOG * 0.1667 : 0) +
+      (atSlaStone   >= 100 ? COMISSAO_LOG * 0.0833 : 0) +
+      (atSlaTon     >= 100 ? COMISSAO_LOG * 0.0833 : 0);
+
+    return { atTmaStone, atTmaTon, atCiclo, atTmaBobinas, atSlaStone, atSlaTon, score, comissao };
+  }
+
+  function kpiRowLog(nome, ating, meta, real, inverso, pct) {
+    const barW = Math.min(ating, 100);
+    const cls  = ating >= 100 ? '' : ating >= 50 ? 'warn' : 'bad';
+    const fmt  = v => pct
+      ? Number(v).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      : Number(v).toLocaleString('pt-BR', {maximumFractionDigits:2});
+    return `
+      <div class="kpi-item">
+        <div class="kpi-top">
+          <span class="kpi-nome">${nome}</span>
+          <div class="kpi-nums">
+            <span>Meta: <span class="destaque">${inverso ? '&lt;' : ''}${fmt(meta)}</span></span>
+            <span>Real: <span class="destaque">${fmt(real)}</span></span>
+            <span>Ating: <span class="destaque">${ating.toFixed(1)}%</span></span>
+          </div>
+        </div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar-real ${cls}" style="width:${barW}%"></div>
+        </div>
+      </div>`;
+  }
+
+  function renderLog() {
+    const wrap = document.getElementById('log-card-wrap');
+    if (!logistica) {
+      wrap.innerHTML = `
+        <div class="empty">
+          <h3>Logística não configurada</h3>
+          <p>Entre no modo admin e clique em "Configurar"</p>
+        </div>
+        <div style="text-align:center;margin-top:16px" class="admin-block">
+          <button class="btn-lancar" onclick="abrirModalLogConfig()">Configurar</button>
+        </div>`;
+      return;
+    }
+    const { atTmaStone, atTmaTon, atCiclo, atTmaBobinas, atSlaStone, atSlaTon, score, comissao } = calcScoreLog(logistica);
+    const st         = statusScore(score);
+    const scoreClass = st === 'ok' ? '' : st === 'alerta' ? 'alerta' : 'risco';
+    const m = logistica.metas;
+    const r = logistica.realizado || {};
+    const comissaoFmt = 'R$ ' + comissao.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    wrap.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px" class="admin-block">
+        <button class="btn-lancar" onclick="abrirModalLogConfig()">Configurar</button>
+        <button class="btn-lancar" onclick="abrirModalLogLancar()">Lançar</button>
+      </div>
+      <div class="agente-card status-${st}" style="max-width:600px;margin:0 auto">
+        <div class="agente-header">
+          <div>
+            <div class="agente-nome">${logistica.nome}</div>
+            <div class="agente-trilha">Logística · Comissão máx. R$ 600,00</div>
+          </div>
+          <div class="agente-score">
+            <div class="score-num ${scoreClass}">${score.toFixed(1)}%</div>
+          </div>
+        </div>
+        <div class="kpi-list">
+          ${kpiRowLog('TMA Stone',     atTmaStone,   m.tmaStone,   r.tmaStone   || 0, true,  false)}
+          ${kpiRowLog('TMA Ton',       atTmaTon,     m.tmaTon,     r.tmaTon     || 0, true,  false)}
+          ${kpiRowLog('Ciclo Triagem', atCiclo,      m.ciclo,      r.ciclo      || 0, true,  false)}
+          ${kpiRowLog('TMA Bobinas',   atTmaBobinas, m.tmaBobinas, r.tmaBobinas || 0, true,  false)}
+          ${kpiRowLog('SLA Stone',     atSlaStone,   m.slaStone,   r.slaStone   || 0, false, true)}
+          ${kpiRowLog('SLA Ton',       atSlaTon,     m.slaTon,     r.slaTon     || 0, false, true)}
+        </div>
+        <div class="agente-footer">
+          <div class="valor-projetado">Comissão: <strong>${comissaoFmt}</strong></div>
+        </div>
+      </div>`;
+  }
+
+  function abrirModalLogConfig() {
+    if (logistica) {
+      document.getElementById('log-nome').value          = logistica.nome;
+      document.getElementById('log-tma-stone').value     = logistica.metas.tmaStone;
+      document.getElementById('log-tma-ton').value       = logistica.metas.tmaTon;
+      document.getElementById('log-ciclo').value         = logistica.metas.ciclo;
+      document.getElementById('log-tma-bobinas').value   = logistica.metas.tmaBobinas;
+      document.getElementById('log-sla-stone').value     = logistica.metas.slaStone;
+      document.getElementById('log-sla-ton').value       = logistica.metas.slaTon;
+    }
+    document.getElementById('modal-log-config').classList.add('open');
+  }
+
+  async function salvarLogConfig() {
+    const nome       = document.getElementById('log-nome').value.trim();
+    const tmaStone   = Number(document.getElementById('log-tma-stone').value);
+    const tmaTon     = Number(document.getElementById('log-tma-ton').value);
+    const ciclo      = Number(document.getElementById('log-ciclo').value);
+    const tmaBobinas = Number(document.getElementById('log-tma-bobinas').value);
+    const slaStone   = Number(document.getElementById('log-sla-stone').value);
+    const slaTon     = Number(document.getElementById('log-sla-ton').value);
+    if (!nome) { alert('Preencha o nome.'); return; }
+    logistica = {
+      nome,
+      metas: { tmaStone, tmaTon, ciclo, tmaBobinas, slaStone, slaTon },
+      realizado: logistica?.realizado || {}
+    };
+    await persistirLog();
+    fecharModal('modal-log-config');
+    renderLog();
+  }
+
+  function abrirModalLogLancar() {
+    if (!logistica) return;
+    const r = logistica.realizado || {};
+    document.getElementById('log-r-tma-stone').value   = r.tmaStone   || '';
+    document.getElementById('log-r-tma-ton').value     = r.tmaTon     || '';
+    document.getElementById('log-r-ciclo').value       = r.ciclo      || '';
+    document.getElementById('log-r-tma-bobinas').value = r.tmaBobinas || '';
+    document.getElementById('log-r-sla-stone').value   = r.slaStone   || '';
+    document.getElementById('log-r-sla-ton').value     = r.slaTon     || '';
+    document.getElementById('modal-log-lancar').classList.add('open');
+  }
+
+  async function salvarLogLancamento() {
+    logistica.realizado = {
+      tmaStone:   Number(document.getElementById('log-r-tma-stone').value)   || 0,
+      tmaTon:     Number(document.getElementById('log-r-tma-ton').value)     || 0,
+      ciclo:      Number(document.getElementById('log-r-ciclo').value)       || 0,
+      tmaBobinas: Number(document.getElementById('log-r-tma-bobinas').value) || 0,
+      slaStone:   Number(document.getElementById('log-r-sla-stone').value)   || 0,
+      slaTon:     Number(document.getElementById('log-r-sla-ton').value)     || 0,
+    };
+    await persistirLog();
+    fecharModal('modal-log-lancar');
+    renderLog();
+  }
+
+  async function persistirLog() {
+    await sb.from('dados').upsert({ id: `mes_${mesAtual}_logistica`, valor: logistica });
+  }
+
+  // ── Data no header ──────────────────────────────────────
+  function atualizarData() {
+    const salva = localStorage.getItem('dataAtualizado');
+    const d = salva ? new Date(salva + 'T12:00:00') : new Date();
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    document.getElementById('data-hoje').value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  function salvarData(val) {
+    if (val) localStorage.setItem('dataAtualizado', val);
+    else localStorage.removeItem('dataAtualizado');
+  }
+
+  // ── Meses ────────────────────────────────────────────────
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let mesAtual = '';
+  let mesesDisponiveis = [];
+
+  function atualizarLabelMes() {
+    const [ano, mes] = mesAtual.split('_').map(Number);
+    document.getElementById('mes-label').textContent = `${MESES_PT[mes-1]} ${ano}`;
+    const idx = mesesDisponiveis.indexOf(mesAtual);
+    document.getElementById('btn-mes-prev').style.opacity = idx > 0 ? '1' : '0.3';
+    document.getElementById('btn-mes-next').style.opacity = idx < mesesDisponiveis.length - 1 ? '1' : '0.3';
+  }
+
+  async function carregarMes(chave) {
+    mesAtual = chave;
+    atualizarLabelMes();
+    const [{ data: da }, { data: dl }] = await Promise.all([
+      sb.from('dados').select('valor').eq('id', `mes_${chave}_agentes`).single(),
+      sb.from('dados').select('valor').eq('id', `mes_${chave}_logistica`).single(),
+    ]);
+    agentes   = da?.valor || [];
+    logistica = dl?.valor || null;
     render();
+    renderLog();
+  }
+
+  async function migrarParaMeses() {
+    const agora  = new Date();
+    const chave  = `${agora.getFullYear()}_${String(agora.getMonth()+1).padStart(2,'0')}`;
+    const [{ data: da }, { data: dl }] = await Promise.all([
+      sb.from('dados').select('valor').eq('id', 'agentes').single(),
+      sb.from('dados').select('valor').eq('id', 'logistica').single(),
+    ]);
+    await Promise.all([
+      sb.from('dados').upsert({ id: `mes_${chave}_agentes`,   valor: da?.valor || [] }),
+      dl?.valor ? sb.from('dados').upsert({ id: `mes_${chave}_logistica`, valor: dl.valor }) : Promise.resolve(),
+    ]);
+    mesesDisponiveis = [chave];
+    mesAtual = chave;
+  }
+
+  async function carregarMeses() {
+    const { data } = await sb.from('dados').select('id').like('id', 'mes_%');
+    const meses = data
+      ? [...new Set(data.map(r => { const m = r.id.match(/^mes_(\d{4}_\d{2})/); return m?.[1]; }).filter(Boolean))].sort()
+      : [];
+    if (meses.length > 0) {
+      mesesDisponiveis = meses;
+      mesAtual = meses[meses.length - 1];
+    } else {
+      await migrarParaMeses();
+    }
+    await carregarMes(mesAtual);
+  }
+
+  function mesAnterior() {
+    const idx = mesesDisponiveis.indexOf(mesAtual);
+    if (idx > 0) carregarMes(mesesDisponiveis[idx - 1]);
+  }
+
+  function mesSeguinte() {
+    const idx = mesesDisponiveis.indexOf(mesAtual);
+    if (idx < mesesDisponiveis.length - 1) carregarMes(mesesDisponiveis[idx + 1]);
+  }
+
+  // ── Abas ─────────────────────────────────────────────────
+  function trocarAba(aba) {
+    document.getElementById('tab-comercial').style.display = aba === 'comercial' ? '' : 'none';
+    document.getElementById('tab-logistica').style.display = aba === 'logistica' ? '' : 'none';
+    document.getElementById('tab-btn-comercial').classList.toggle('active', aba === 'comercial');
+    document.getElementById('tab-btn-logistica').classList.toggle('active', aba === 'logistica');
   }
 
   // ── Init ────────────────────────────────────────────────
   atualizarData();
-  carregarDados();
+  carregarMeses();
 </script>
 
 </body>
