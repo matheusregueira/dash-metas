@@ -1014,19 +1014,19 @@
   }
 
   // ── Data no header ──────────────────────────────────────
-  function atualizarData() {
-    const salva = localStorage.getItem('dataAtualizado');
+  async function atualizarData() {
+    const { data } = await sb.from('dados').select('valor').eq('id', 'config').single();
+    const salva = data?.valor?.dataAtualizado;
     const d = salva ? new Date(salva + 'T12:00:00') : new Date();
     const yyyy = d.getFullYear();
     const mm   = String(d.getMonth() + 1).padStart(2, '0');
     const dd   = String(d.getDate()).padStart(2, '0');
-    document.getElementById('data-hoje').value   = `${yyyy}-${mm}-${dd}`;
-    document.getElementById('data-display').textContent = `${dd}/${mm}/${yyyy}`;
+    document.getElementById('data-hoje').value           = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('data-display').textContent  = `${dd}/${mm}/${yyyy}`;
   }
 
-  function salvarData(val) {
-    if (val) localStorage.setItem('dataAtualizado', val);
-    else localStorage.removeItem('dataAtualizado');
+  async function salvarData(val) {
+    await sb.from('dados').upsert({ id: 'config', valor: { dataAtualizado: val || null } });
     atualizarData();
   }
 
