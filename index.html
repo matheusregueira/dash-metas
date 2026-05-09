@@ -864,9 +864,12 @@
     const atSlaStone   = (m.slaStone   > 0) ? Math.min(r.slaStone   / m.slaStone   * 100, 100) : 0;
     const atSlaTon     = (m.slaTon     > 0) ? Math.min(r.slaTon     / m.slaTon     * 100, 100) : 0;
 
-    const score = atTmaStone * 0.25 + atTmaTon * 0.25
-                + atSlaStone * 0.0833 + atSlaTon * 0.0833
-                + atCiclo * 0.1667 + atTmaBobinas * 0.1667;
+    const score = (atTmaStone   >= 100 ? 25    : 0)
+                + (atTmaTon     >= 100 ? 25    : 0)
+                + (atSlaStone   >= 100 ? 8.33  : 0)
+                + (atSlaTon     >= 100 ? 8.33  : 0)
+                + (atCiclo      >= 100 ? 16.67 : 0)
+                + (atTmaBobinas >= 100 ? 16.67 : 0);
 
     // Comissão proporcional: cada KPI batido (ating = 100%) libera seu peso * R$600
     const comissao =
@@ -882,7 +885,7 @@
 
   function kpiRowLog(nome, ating, meta, real, inverso, pct) {
     const barW = Math.min(ating, 100);
-    const cls  = ating >= 100 ? '' : ating >= 50 ? 'warn' : 'bad';
+    const cls  = ating >= 100 ? '' : 'bad';
     const fmt  = v => pct
       ? Number(v).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
       : Number(v).toLocaleString('pt-BR', {maximumFractionDigits:2});
