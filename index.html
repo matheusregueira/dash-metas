@@ -409,8 +409,9 @@
         <label>NA — Meta</label>
         <input type="number" id="ag-na-meta" placeholder="Ex: 12" min="0">
       </div>
-      <div class="form-group" style="display:flex;align-items:flex-end">
-        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 30%</p>
+      <div class="form-group">
+        <label>Peso NA (%)</label>
+        <input type="number" id="ag-na-peso" placeholder="30" min="0" max="100">
       </div>
     </div>
 
@@ -419,8 +420,9 @@
         <label>TPV M1 — Meta (R$)</label>
         <input type="number" id="ag-tpv-meta" placeholder="Ex: 330000" min="0">
       </div>
-      <div class="form-group" style="display:flex;align-items:flex-end">
-        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 40% · Teto 150%</p>
+      <div class="form-group">
+        <label>Peso TPV (%) · Teto 150%</label>
+        <input type="number" id="ag-tpv-peso" placeholder="40" min="0" max="100">
       </div>
     </div>
 
@@ -429,10 +431,12 @@
         <label>Churn — Meta (%)</label>
         <input type="number" id="ag-churn-meta" placeholder="Ex: 5.6" min="0" step="0.1">
       </div>
-      <div class="form-group" style="display:flex;align-items:flex-end">
-        <p style="font-size:0.78rem;color:var(--gray-text);padding-bottom:11px">Peso 30%</p>
+      <div class="form-group">
+        <label>Peso Churn (%)</label>
+        <input type="number" id="ag-churn-peso" placeholder="30" min="0" max="100">
       </div>
     </div>
+    <p id="peso-aviso" style="font-size:0.8rem;color:var(--red);margin-bottom:4px;display:none">A soma dos pesos deve ser 100%.</p>
 
     <div class="modal-footer">
       <button class="btn btn-cancel" onclick="fecharModal('modal-agente')">Cancelar</button>
@@ -600,9 +604,12 @@
     const tpvAting   = ag.tpvMeta   > 0 ? Math.min((r.tpv || 0) / ag.tpvMeta * 100, 150) : 0;
     const churnAting = (r.churn     || 0) > 0 ? ag.churnMeta / r.churn * 100 : 0;
 
-    const base  = naAting * 0.30 + tpvAting * 0.40 + churnAting * 0.30;
+    const pNA    = (ag.pesoNA    ?? 30) / 100;
+    const pTPV   = (ag.pesoTPV   ?? 40) / 100;
+    const pChurn = (ag.pesoChurn ?? 30) / 100;
+    const base  = naAting * pNA + tpvAting * pTPV + churnAting * pChurn;
     const bonus = (r.bonus || 0) > 0 && naAting > 0
-      ? (r.bonus * naAting * 0.25) * 0.30 : 0;
+      ? (r.bonus * naAting * 0.25) * pNA : 0;
 
     return { naAting, tpvAting, churnAting, score: base + bonus };
   }
@@ -651,9 +658,9 @@
         </div>
 
         <div class="kpi-list">
-          ${kpiRow('NA',     naAting,    ag.naMeta,    ag.realizado?.na    || 0, false)}
-          ${kpiRow('TPV M1', tpvAting,   ag.tpvMeta,   ag.realizado?.tpv   || 0, false)}
-          ${kpiRow('Churn',  churnAting, ag.churnMeta, ag.realizado?.churn || 0, true)}
+          ${kpiRow('NA',     naAting,    ag.naMeta,    ag.realizado?.na    || 0, false, ag.pesoNA    ?? 30)}
+          ${kpiRow('TPV M1', tpvAting,   ag.tpvMeta,   ag.realizado?.tpv   || 0, false, ag.pesoTPV   ?? 40)}
+          ${kpiRow('Churn',  churnAting, ag.churnMeta, ag.realizado?.churn || 0, true,  ag.pesoChurn ?? 30)}
         </div>
 
         <div class="agente-footer">
@@ -671,7 +678,7 @@
     });
   }
 
-  function kpiRow(nome, ating, meta, real, inverso) {
+  function kpiRow(nome, ating, meta, real, inverso, peso) {
     const barReal = Math.min(ating, 100);
     const cls = ating >= 100 ? '' : ating >= 50 ? 'warn' : 'bad';
 
@@ -686,7 +693,7 @@
     return `
       <div class="kpi-item">
         <div class="kpi-top">
-          <span class="kpi-nome">${nome}</span>
+          <span class="kpi-nome">${nome} <span style="font-weight:400;color:var(--gray-text)">${peso}%</span></span>
           <div class="kpi-nums">
             <span>Meta: <span class="destaque">${metaFmt}</span></span>
             <span>Real: <span class="destaque">${realFmt}</span></span>
@@ -705,19 +712,26 @@
     if (id) {
       const ag = agentes.find(a => a.id === id);
       document.getElementById('modal-agente-titulo').textContent = 'Editar Agente';
-      document.getElementById('ag-nome').value       = ag.nome;
-      document.getElementById('ag-trilha').value     = ag.trilha;
-      document.getElementById('ag-na-meta').value    = ag.naMeta;
-      document.getElementById('ag-tpv-meta').value   = ag.tpvMeta;
-      document.getElementById('ag-churn-meta').value = ag.churnMeta;
+      document.getElementById('ag-nome').value        = ag.nome;
+      document.getElementById('ag-trilha').value      = ag.trilha;
+      document.getElementById('ag-na-meta').value     = ag.naMeta;
+      document.getElementById('ag-tpv-meta').value    = ag.tpvMeta;
+      document.getElementById('ag-churn-meta').value  = ag.churnMeta;
+      document.getElementById('ag-na-peso').value     = ag.pesoNA    ?? 30;
+      document.getElementById('ag-tpv-peso').value    = ag.pesoTPV   ?? 40;
+      document.getElementById('ag-churn-peso').value  = ag.pesoChurn ?? 30;
     } else {
       document.getElementById('modal-agente-titulo').textContent = 'Cadastrar Agente';
-      document.getElementById('ag-nome').value       = '';
-      document.getElementById('ag-trilha').value     = '600';
-      document.getElementById('ag-na-meta').value    = '';
-      document.getElementById('ag-tpv-meta').value   = '';
-      document.getElementById('ag-churn-meta').value = '';
+      document.getElementById('ag-nome').value        = '';
+      document.getElementById('ag-trilha').value      = '600';
+      document.getElementById('ag-na-meta').value     = '';
+      document.getElementById('ag-tpv-meta').value    = '';
+      document.getElementById('ag-churn-meta').value  = '';
+      document.getElementById('ag-na-peso').value     = '30';
+      document.getElementById('ag-tpv-peso').value    = '40';
+      document.getElementById('ag-churn-peso').value  = '30';
     }
+    document.getElementById('peso-aviso').style.display = 'none';
     document.getElementById('modal-agente').classList.add('open');
   }
 
@@ -756,20 +770,35 @@
   async function salvarAgente() {
     const nome      = document.getElementById('ag-nome').value.trim();
     const trilha    = Number(document.getElementById('ag-trilha').value);
-    const naMeta    = Number(document.getElementById('ag-na-meta').value);
-    const tpvMeta   = Number(document.getElementById('ag-tpv-meta').value);
-    const churnMeta = Number(document.getElementById('ag-churn-meta').value);
+    const naMetaInput    = document.getElementById('ag-na-meta').value;
+    const tpvMetaInput   = document.getElementById('ag-tpv-meta').value;
+    const churnMetaInput = document.getElementById('ag-churn-meta').value;
+    const naMeta    = Number(naMetaInput);
+    const tpvMeta   = Number(tpvMetaInput);
+    const churnMeta = Number(churnMetaInput);
+    const pesoNAVal    = document.getElementById('ag-na-peso').value;
+    const pesoTPVVal   = document.getElementById('ag-tpv-peso').value;
+    const pesoChurnVal = document.getElementById('ag-churn-peso').value;
+    const pesoNA    = pesoNAVal    !== '' ? Number(pesoNAVal)    : 30;
+    const pesoTPV   = pesoTPVVal   !== '' ? Number(pesoTPVVal)   : 40;
+    const pesoChurn = pesoChurnVal !== '' ? Number(pesoChurnVal) : 30;
 
-    if (!nome || !naMeta || !tpvMeta || !churnMeta) {
+    if (!nome || naMetaInput === '' || tpvMetaInput === '' || churnMetaInput === '') {
       alert('Preencha todos os campos.'); return;
     }
+
+    if (pesoNA + pesoTPV + pesoChurn !== 100) {
+      document.getElementById('peso-aviso').style.display = '';
+      return;
+    }
+    document.getElementById('peso-aviso').style.display = 'none';
 
     const editId = document.getElementById('agente-edit-id').value;
     if (editId) {
       const ag = agentes.find(a => a.id === editId);
-      Object.assign(ag, { nome, trilha, naMeta, tpvMeta, churnMeta });
+      Object.assign(ag, { nome, trilha, naMeta, tpvMeta, churnMeta, pesoNA, pesoTPV, pesoChurn });
     } else {
-      agentes.push({ id: Date.now().toString(), nome, trilha, naMeta, tpvMeta, churnMeta, realizado: {} });
+      agentes.push({ id: Date.now().toString(), nome, trilha, naMeta, tpvMeta, churnMeta, pesoNA, pesoTPV, pesoChurn, realizado: {} });
     }
 
     persistir();
