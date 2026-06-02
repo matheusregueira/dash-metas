@@ -882,12 +882,28 @@
   }
 
   async function novoMes() {
-    if (!confirm('Criar novo mês? Agentes e metas são mantidos, realizados zerados.')) return;
-    const [ano, mes] = mesAtual.split('_').map(Number);
+    // Sempre cria o próximo mês a partir do mais recente, não do mês visualizado
+    const ultimoMes = mesesDisponiveis[mesesDisponiveis.length - 1];
+    const [ano, mes] = ultimoMes.split('_').map(Number);
     const d = new Date(ano, mes, 1);
     const proxChave = `${d.getFullYear()}_${String(d.getMonth()+1).padStart(2,'0')}`;
-    const novosAgentes  = agentes.map(ag => ({ ...ag, realizado: {} }));
-    const novaLogistica = logistica ? { ...logistica, realizado: {} } : null;
+    const proxLabel = MESES_PT[d.getMonth()] + ' / ' + d.getFullYear();
+    const ultimoLabel = MESES_PT[mes-1] + ' / ' + ano;
+
+    if (!confirm(`Criar ${proxLabel}?\nMetas copiadas de ${ultimoLabel}, realizados zerados.`)) return;
+
+    // Lê dados do mês mais recente direto do Supabase para garantir cópia correta
+    const [{ data: daUltimo }, { data: dlUltimo }] = await Promise.all([
+      sb.from('dados').select('valor').eq('id', `mes_${ultimoMes}_agentes`).single(),
+      sb.from('dados').select('valor').eq('id', `mes_${ultimoMes}_logistica`).single(),
+    ]);
+
+    const agentesParaCopiar = daUltimo?.valor || [];
+    const logParaCopiar     = dlUltimo?.valor || null;
+
+    const novosAgentes  = agentesParaCopiar.map(ag => ({ ...ag, realizado: {} }));
+    const novaLogistica = logParaCopiar ? { ...logParaCopiar, realizado: {} } : null;
+
     await Promise.all([
       sb.from('dados').upsert({ id: `mes_${proxChave}_agentes`, valor: novosAgentes }),
       novaLogistica ? sb.from('dados').upsert({ id: `mes_${proxChave}_logistica`, valor: novaLogistica }) : Promise.resolve()
