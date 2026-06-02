@@ -803,7 +803,7 @@
       agentes.push({ id: Date.now().toString(), nome, trilha, naMeta, tpvMeta, churnMeta, pesoNA, pesoTPV, pesoChurn, realizado: {} });
     }
 
-    persistir();
+    await persistir();
     fecharModal('modal-agente');
     render();
   }
@@ -820,13 +820,18 @@
       bonus: Number(document.getElementById('lancar-bonus').value) || 0,
     };
 
-    persistir();
+    await persistir();
     fecharModal('modal-lancar');
     render();
   }
 
   async function persistir() {
-    await sb.from('dados').upsert({ id: `mes_${mesAtual}_agentes`, valor: agentes });
+    const chave   = mesAtual;
+    const snapshot = JSON.parse(JSON.stringify(agentes));
+    console.log('[RMR] salvando em:', chave, '| agentes:', snapshot.map(a => a.nome));
+    const { error } = await sb.from('dados').upsert({ id: `mes_${chave}_agentes`, valor: snapshot });
+    if (error) console.error('[RMR] erro ao salvar:', error);
+    else console.log('[RMR] salvo com sucesso em', chave);
   }
 
 
