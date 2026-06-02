@@ -826,12 +826,9 @@
   }
 
   async function persistir() {
-    const chave   = mesAtual;
+    const chave    = mesAtual;
     const snapshot = JSON.parse(JSON.stringify(agentes));
-    console.log('[RMR] salvando em:', chave, '| agentes:', snapshot.map(a => a.nome));
-    const { error } = await sb.from('dados').upsert({ id: `mes_${chave}_agentes`, valor: snapshot });
-    if (error) console.error('[RMR] erro ao salvar:', error);
-    else console.log('[RMR] salvo com sucesso em', chave);
+    await sb.from('dados').upsert({ id: `mes_${chave}_agentes`, valor: snapshot });
   }
 
 
