@@ -626,15 +626,15 @@
     const grid  = document.getElementById('agentes-grid');
     const empty = document.getElementById('empty-state');
 
+    // Remove só os cards de agente, sem destruir o empty-state
+    grid.querySelectorAll('.agente-card').forEach(c => c.remove());
+
     if (agentes.length === 0) {
-      empty.style.display = '';
-      grid.innerHTML = '';
-      grid.appendChild(empty);
+      if (empty) empty.style.display = '';
       return;
     }
 
-    empty.style.display = 'none';
-    grid.innerHTML = '';
+    if (empty) empty.style.display = 'none';
 
     agentes.forEach(ag => {
       const { naAting, tpvAting, churnAting, score } = calcScore(ag);
