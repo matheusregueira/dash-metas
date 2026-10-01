@@ -407,11 +407,11 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>NA — Meta</label>
+        <label><span class="lbl-na">NA</span> — Meta</label>
         <input type="number" id="ag-na-meta" placeholder="Ex: 12" min="0">
       </div>
       <div class="form-group">
-        <label>Peso NA (%)</label>
+        <label>Peso <span class="lbl-na">NA</span> (%)</label>
         <input type="number" id="ag-na-peso" placeholder="30" min="0" max="100">
       </div>
     </div>
@@ -457,7 +457,7 @@
     </div>
 
     <div class="form-group">
-      <label>NA Realizado</label>
+      <label><span class="lbl-na">NA</span> Realizado</label>
       <input type="number" id="lancar-na" placeholder="0" min="0">
     </div>
 
@@ -659,7 +659,7 @@
         </div>
 
         <div class="kpi-list">
-          ${kpiRow('NA',     naAting,    ag.naMeta,    ag.realizado?.na    || 0, false, ag.pesoNA    ?? 30)}
+          ${kpiRow(nomeNA(), naAting,    ag.naMeta,    ag.realizado?.na    || 0, false, ag.pesoNA    ?? 30)}
           ${kpiRow('TPV M1', tpvAting,   ag.tpvMeta,   ag.realizado?.tpv   || 0, false, ag.pesoTPV   ?? 40)}
           ${kpiRow('Churn',  churnAting, ag.churnMeta, ag.realizado?.churn || 0, true,  ag.pesoChurn ?? 30)}
         </div>
@@ -1111,9 +1111,15 @@
   let mesAtual = '';
   let mesesDisponiveis = [];
 
+  // A partir de Out/2026 a apuração do NA passou a ser NA M1 7K+
+  function nomeNA() {
+    return mesAtual >= '2026_10' ? 'NA M1 7K+' : 'NA';
+  }
+
   function atualizarLabelMes() {
     const [ano, mes] = mesAtual.split('_').map(Number);
     document.getElementById('mes-label').textContent = `${MESES_PT[mes-1]} ${ano}`;
+    document.querySelectorAll('.lbl-na').forEach(el => el.textContent = nomeNA());
     const idx = mesesDisponiveis.indexOf(mesAtual);
     document.getElementById('btn-mes-prev').style.opacity = idx > 0 ? '1' : '0.3';
     document.getElementById('btn-mes-next').style.opacity = idx < mesesDisponiveis.length - 1 ? '1' : '0.3';
