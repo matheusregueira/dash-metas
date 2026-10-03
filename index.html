@@ -430,7 +430,7 @@
     <div class="form-row">
       <div class="form-group">
         <label>Churn — Meta (%)</label>
-        <input type="number" id="ag-churn-meta" placeholder="Ex: 5.6" min="0" step="0.1">
+        <input type="number" id="ag-churn-meta" placeholder="Ex: 5.6" min="0" step="any">
       </div>
       <div class="form-group">
         <label>Peso Churn (%)</label>
@@ -468,7 +468,7 @@
 
     <div class="form-group">
       <label>Churn Realizado (%)</label>
-      <input type="number" id="lancar-churn" placeholder="0" min="0" step="0.1">
+      <input type="number" id="lancar-churn" placeholder="0" min="0" step="any">
     </div>
 
     <div class="form-group">
@@ -520,11 +520,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>SLA Stone (%)</label>
-        <input type="number" id="log-sla-stone" placeholder="Ex: 97" step="0.1" min="0" max="100">
+        <input type="number" id="log-sla-stone" placeholder="Ex: 97" step="any" min="0" max="100">
       </div>
       <div class="form-group">
         <label>SLA Ton (%)</label>
-        <input type="number" id="log-sla-ton" placeholder="Ex: 97" step="0.1" min="0" max="100">
+        <input type="number" id="log-sla-ton" placeholder="Ex: 97" step="any" min="0" max="100">
       </div>
     </div>
 
@@ -565,11 +565,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>SLA Stone (%)</label>
-        <input type="number" id="log-r-sla-stone" placeholder="0" step="0.1" min="0" max="100">
+        <input type="number" id="log-r-sla-stone" placeholder="0" step="any" min="0" max="100">
       </div>
       <div class="form-group">
         <label>SLA Ton (%)</label>
-        <input type="number" id="log-r-sla-ton" placeholder="0" step="0.1" min="0" max="100">
+        <input type="number" id="log-r-sla-ton" placeholder="0" step="any" min="0" max="100">
       </div>
     </div>
 
@@ -685,11 +685,11 @@
     const cls = ating >= 100 ? '' : ating >= 50 ? 'warn' : 'bad';
 
     const metaFmt = inverso
-      ? meta.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      ? meta.toLocaleString('pt-BR', {maximumFractionDigits:2}) + '%'
       : (nome === 'TPV M1' ? 'R$ ' + Number(meta).toLocaleString('pt-BR') : meta);
 
     const realFmt = inverso
-      ? Number(real).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      ? Number(real).toLocaleString('pt-BR', {maximumFractionDigits:2}) + '%'
       : (nome === 'TPV M1' ? 'R$ ' + Number(real).toLocaleString('pt-BR') : real);
 
     return `
@@ -960,7 +960,7 @@
     const barW = Math.min(ating, 100);
     const cls  = ating >= 100 ? '' : 'bad';
     const fmt  = v => pct
-      ? Number(v).toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%'
+      ? Number(v).toLocaleString('pt-BR', {maximumFractionDigits:2}) + '%'
       : Number(v).toLocaleString('pt-BR', {maximumFractionDigits:2});
     return `
       <div class="kpi-item">
