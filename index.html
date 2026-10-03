@@ -612,7 +612,7 @@
     const bonus = (r.bonus || 0) > 0 && naAting > 0
       ? (r.bonus * naAting * 0.25) * pNA : 0;
 
-    return { naAting, tpvAting, churnAting, score: base + bonus };
+    return { naAting, tpvAting, churnAting, bonus, score: base + bonus };
   }
 
   function statusScore(score) {
@@ -637,7 +637,7 @@
     if (empty) empty.style.display = 'none';
 
     agentes.forEach(ag => {
-      const { naAting, tpvAting, churnAting, score } = calcScore(ag);
+      const { naAting, tpvAting, churnAting, bonus, score } = calcScore(ag);
       const st         = statusScore(score);
       const trilhaNome = TRILHAS[ag.trilha] || 'Aspira';
       const comissao   = ag.trilha * score / 100;
@@ -662,6 +662,15 @@
           ${kpiRow(nomeNA(), naAting,    ag.naMeta,    ag.realizado?.na    || 0, false, ag.pesoNA    ?? 30)}
           ${kpiRow('TPV M1', tpvAting,   ag.tpvMeta,   ag.realizado?.tpv   || 0, false, ag.pesoTPV   ?? 40)}
           ${kpiRow('Churn',  churnAting, ag.churnMeta, ag.realizado?.churn || 0, true,  ag.pesoChurn ?? 30)}
+          <div class="kpi-item">
+            <div class="kpi-top">
+              <span class="kpi-nome">Bônus 50k+</span>
+              <div class="kpi-nums">
+                <span>Clientes: <span class="destaque">${ag.realizado?.bonus || 0}</span></span>
+                <span>No score: <span class="destaque">+${bonus.toFixed(1)}%</span></span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="agente-footer">
